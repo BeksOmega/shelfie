@@ -4,11 +4,10 @@ import {
   Book as BookIcon, 
   Settings, 
   Plus, 
-  Video,
-  Volume2
+  Video
 } from 'lucide-react';
 import { TIERS, THEME_PRESETS } from './constants';
-import { Book, TierId, ThemePreset, ThemeColors, ReadingSession } from './types';
+import { Book, TierId, ThemePreset, ThemeColors } from './types';
 import SearchPanel from './components/SearchPanel';
 import BookModal from './components/BookModal';
 import ThemeManager from './components/ThemeManager';
@@ -103,7 +102,6 @@ const App: React.FC = () => {
     return map;
   }, [books]);
 
-  // Enhanced move logic for reordering
   const moveAndReorderBook = (draggedId: string, targetTier: TierId, targetBookId: string | null = null) => {
     setBooks(prev => {
       const newBooks = [...prev];
@@ -117,20 +115,12 @@ const App: React.FC = () => {
         const targetIndex = newBooks.findIndex(b => b.id === targetBookId);
         newBooks.splice(targetIndex, 0, draggedBook);
       } else {
-        // Find last index of that tier and push after it
-        const lastInTierIndex = [...newBooks].reverse().findIndex(b => b.tier === targetTier);
-        if (lastInTierIndex === -1) {
-          newBooks.push(draggedBook);
-        } else {
-          const actualIndex = newBooks.length - lastInTierIndex;
-          newBooks.splice(actualIndex, 0, draggedBook);
-        }
+        newBooks.push(draggedBook);
       }
       return newBooks;
     });
   };
 
-  // Drag and Drop Handlers
   const handleDragStart = (id: string) => {
     setDraggedBookId(id);
   };
@@ -179,7 +169,7 @@ const App: React.FC = () => {
               style={{ backgroundColor: `${currentColors.background}CC`, borderColor: `${currentColors.accent}33` }}>
         <div className="flex items-center gap-3">
           <BookIcon className="w-8 h-8" style={{ color: currentColors.accent }} />
-          <h1 className="text-2xl font-bold tracking-tight">BiblioTier</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Shelfie</h1>
         </div>
 
         <div className="flex items-center gap-6">
@@ -226,10 +216,11 @@ const App: React.FC = () => {
             onDragLeave={() => setDragOverTier(null)}
             onDrop={(e) => handleDropOnTier(e, tier.id)}
             className={`flex flex-col sm:flex-row min-h-[160px] rounded-xl overflow-hidden shadow-sm border-2 transition-all ${dragOverTier === tier.id ? 'scale-[1.01] border-dashed ring-4 ring-offset-2' : 'border-transparent'}`}
+            // Fixed: Replaced 'ringColor' (invalid CSS) with CSS variable '--tw-ring-color' to work with Tailwind's ring utility
             style={{ 
               backgroundColor: `${currentColors[tier.id]}11`, 
               borderColor: dragOverTier === tier.id ? currentColors[tier.id] : `${currentColors[tier.id]}44`,
-              ringColor: `${currentColors[tier.id]}33`
+              ['--tw-ring-color' as any]: `${currentColors[tier.id]}33`
             }}
           >
             {/* Tier Label - 100% Opaque and High Contrast */}
