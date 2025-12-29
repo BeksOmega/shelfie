@@ -1,48 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shelfie - Ultimate Book Ranking</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "lucide-react": "https://esm.sh/lucide-react@0.454.0?external=react",
-    "@google/genai": "https://esm.sh/@google/genai@1.3.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
-  }
-}
-</script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body { 
-      font-family: 'Inter', sans-serif; 
-      transition: background-color 0.5s ease; 
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      height: 20px;
-      width: 20px;
-      border-radius: 50%;
-      background: currentColor;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .tier-row { transition: transform 0.2s ease, border-style 0.2s ease; }
-    .book-card { cursor: grab; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .book-card:active { cursor: grabbing; }
-    .modal-overlay { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shelfie - Ultimate Book Ranking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        .tier-header { text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .ghost-card { opacity: 0.4; background: #cbd5e1; }
+    </style>
 </head>
-<body class="bg-gray-50">
-  <div id="root"></div>
+<body class="bg-gray-100 min-h-screen pb-20 transition-colors duration-500">
+
+    <header class="p-6 bg-white shadow-md sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-3xl font-black text-indigo-600">Shelfie</h1>
+        
+        <div class="flex items-center gap-4">
+            <div>
+                <label class="text-xs font-bold uppercase block text-gray-500">Theme</label>
+                <select id="themeSelect" class="border rounded p-1 text-sm">
+                    <option value="default">Classic</option>
+                    <option value="academia">Dark Academia</option>
+                    <option value="cyberpunk">Cyberpunk</option>
+                    <option value="pastel">Pastel Dream</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-bold uppercase block text-gray-500">Cover Size</label>
+                <input type="range" id="sizeSlider" min="60" max="200" value="100" class="w-24">
+            </div>
+            <div class="text-center">
+                <span class="text-xs font-bold uppercase block text-gray-500">Total Read</span>
+                <span id="totalCounter" class="text-xl font-bold">0</span>
+            </div>
+        </div>
+
+        <div class="w-full max-w-md">
+            <input type="text" id="searchInput" placeholder="Search for a book..." class="w-full border-2 border-indigo-200 rounded-full px-4 py-2 focus:outline-none focus:border-indigo-500">
+            <div id="searchResults" class="absolute bg-white shadow-xl rounded mt-2 w-full max-w-md hidden max-h-60 overflow-y-auto z-50"></div>
+        </div>
+    </header>
+
+    <main id="tiersContainer" class="p-6 space-y-6"></main>
+
+    <div id="lightbox" class="fixed inset-0 bg-black/80 hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-lg w-full p-6 relative">
+            <button onclick="closeLightbox()" class="absolute top-4 right-4 text-2xl">&times;</button>
+            <div id="lightboxContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & STATE ---
+        let books = JSON.parse(localStorage.getItem('shelfie_books')) || [];
+        const tiers = [
+            { id: 'tbr', name: 'TBR', color: '#a78bfa' },
+            { id: 'god', name: 'God Tier', color: '#f59e0b' },
+            { id: 'a', name: 'A Tier', color: '#10b981' },
+            { id: 'b', name: 'B Tier', color: '#3b82f6' },
+            { id: 'c', name: 'C Tier', color: '#6b7280' },
+            { id: 'dnf', name: 'DNF', color: '#ef4444' }
+        ];
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTiers();
+            initSortable();
+            setupSearch();
+            updateGlobalCounter();
+            
+            document.getElementById('sizeSlider').addEventListener('input', (e) => {
+                document.querySelectorAll('.book-cover').forEach(img => img.style.width = e.target.value + 'px');
+            });
+
+            document.getElementById('themeSelect').addEventListener('change', applyTheme);
+        });
+
+        function renderTiers() {
+            const container = document.getElementById('tiersContainer');
+            container.innerHTML = tiers.map(tier => `
+                <div class="tier-wrapper" data-tier="${tier.id}">
+                    <div class="tier-header p-3 rounded-t-lg font-bold text-white flex justify-between items-center" style="background-color: ${tier.color}">
+                        <span>${tier.name}</span>
+                        <span class="text-sm bg-black/20 px-2 rounded" id="count-${tier.id}">0</span>
+                    </div>
+                    <div id="tier-${tier.id}" class="tier-list p-4 bg-white border-2 rounded-b-lg min-h-[120px] flex flex-wrap gap-4" style="border-color: ${tier.color}44">
+                        ${renderBooksInTier(tier.id)}
+                    </div>
+                </div>
+            `).join('');
+            updateTierCounters();
+        }
+
+        function renderBooksInTier(tierId) {
+            return books.filter(b => b.tier === tierId).map(book => `
+                <div class="book-card cursor-pointer group relative" data-id="${book.id}" onclick="openLightbox('${book.id}')">
+                    <img src="${book.cover}" class="book-cover rounded shadow-md transition-transform group-hover:scale-105" style="width: ${document.getElementById('sizeSlider').value}px">
+                    ${tierId === 'tbr' ? `<button class="absolute -top-2 -right-2 bg-yellow-400 p-1 rounded-full shadow" onclick="event.stopPropagation(); addToCalendar('${book.title}')">🔔</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // --- DRAG AND DROP ---
+        function initSortable() {
+            tiers.forEach(tier => {
+                new Sortable(document.getElementById(`tier-${tier.id}`), {
+                    group: 'shared',
+                    animation: 150,
+                    ghostClass: 'ghost-card',
+                    onEnd: (evt) => {
+                        const bookId = evt.item.getAttribute('data-id');
+                        const newTier = evt.to.id.replace('tier-', '');
+                        const book = books.find(b => b.id === bookId);
+                        if (book) {
+                            book.tier = newTier;
+                            save();
+                            renderTiers();
+                            initSortable();
+                            updateGlobalCounter();
+                        }
+                    }
+                });
+            });
+        }
+
+        // --- SEARCH ---
+        function setupSearch() {
+            const input = document.getElementById('searchInput');
+            const results = document.getElementById('searchResults');
+
+            input.addEventListener('input', async (e) => {
+                if (e.target.value.length < 3) { results.classList.add('hidden'); return; }
+                const resp = await fetch(`https://openlibrary.org/search.json?title=${e.target.value}&limit=5`);
+                const data = await resp.json();
+                
+                results.innerHTML = data.docs.map(doc => `
+                    <div class="p-3 hover:bg-gray-100 cursor-pointer border-b flex gap-3 items-center" onclick="addBook('${doc.key}', '${doc.title.replace(/'/g, "\\'")}', '${doc.author_name?.[0] || 'Unknown'}', ${doc.cover_i})">
+                        <img src="https://covers.openlibrary.org/b/id/${doc.cover_i}-S.jpg" class="w-10 h-14 object-cover bg-gray-200">
+                        <div>
+                            <div class="font-bold text-sm">${doc.title}</div>
+                            <div class="text-xs text-gray-500">${doc.author_name?.[0] || 'Unknown'}</div>
+                        </div>
+                    </div>
+                `).join('');
+                results.classList.remove('hidden');
+            });
+        }
+
+        function addBook(key, title, author, coverId) {
+            const newBook = {
+                id: key + Date.now(),
+                title,
+                author,
+                cover: `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`,
+                tier: 'tbr',
+                sessions: [],
+                dnfPercent: 0
+            };
+            books.push(newBook);
+            save();
+            renderTiers();
+            initSortable();
+            document.getElementById('searchResults').classList.add('hidden');
+            document.getElementById('searchInput').value = '';
+        }
+
+        // --- CALENDAR ---
+        function addToCalendar(title) {
+            const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=Read:+${encodeURIComponent(title)}&details=Reminder+from+Shelfie`;
+            window.open(url, '_blank');
+        }
+
+        // --- UTILS ---
+        function save() { localStorage.setItem('shelfie_books', JSON.stringify(books)); }
+        
+        function updateGlobalCounter() {
+            const readCount = books.filter(b => (b.tier !== 'tbr' && b.tier !== 'dnf') || (b.tier === 'dnf' && b.dnfPercent > 80)).length;
+            document.getElementById('totalCounter').innerText = readCount;
+        }
+
+        function updateTierCounters() {
+            tiers.forEach(t => {
+                const count = books.filter(b => b.tier === t.id).length;
+                document.getElementById(`count-${t.id}`).innerText = count;
+            });
+        }
+
+        function applyTheme() {
+            const theme = document.getElementById('themeSelect').value;
+            const body = document.body;
+            if (theme === 'academia') body.style.backgroundColor = '#2c1810';
+            else if (theme === 'cyberpunk') body.style.backgroundColor = '#0f172a';
+            else if (theme === 'pastel') body.style.backgroundColor = '#fdf2f8';
+            else body.style.backgroundColor = '#f3f4f6';
+        }
+
+        function openLightbox(id) {
+            const book = books.find(b => b.id === id);
+            const content = document.getElementById('lightboxContent');
+            content.innerHTML = `
+                <div class="flex gap-6">
+                    <img src="${book.cover}" class="w-32 shadow-lg rounded">
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold mb-1">${book.title}</h2>
+                        <p class="text-gray-600 mb-4">${book.author}</p>
+                        ${book.tier === 'dnf' ? `
+                            <label class="block text-sm font-bold">Progress: ${book.dnfPercent}%</label>
+                            <input type="range" value="${book.dnfPercent}" class="w-full" onchange="updateDNF('${book.id}', this.value)">
+                        ` : ''}
+                        <button onclick="removeBook('${book.id}')" class="mt-8 text-red-500 text-sm underline">Remove Book</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('lightbox').classList.remove('hidden');
+        }
+
+        function updateDNF(id, val) {
+            const book = books.find(b => b.id === id);
+            book.dnfPercent = parseInt(val);
+            save();
+            updateGlobalCounter();
+        }
+
+        function removeBook(id) {
+            books = books.filter(b => b.id !== id);
+            save();
+            renderTiers();
+            initSortable();
+            closeLightbox();
+        }
+
+        function closeLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
+    </script>
 </body>
 </html>
