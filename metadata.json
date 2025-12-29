@@ -1,7 +1,5 @@
 {
-  "name": "Copy of BiblioTier - Ultimate Book Ranking",
-  "description": "An interactive book tier ranking dashboard with custom themes, Google Books search, and AI-powered book cover animation using Veo.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "name": "Shelfie - Ultimate Book Ranking",
+  "description": "An interactive book tier ranking dashboard with custom themes, Google Books search, and AI-powered book cover animation.",
+  "requestFramePermissions": []
 }

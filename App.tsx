@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Book as BookIcon, 
@@ -25,32 +24,26 @@ const App: React.FC = () => {
   const [dragOverTier, setDragOverTier] = useState<TierId | null>(null);
   const [dragOverBookId, setDragOverBookId] = useState<string | null>(null);
 
-  // Persistence & Migration
   useEffect(() => {
     const savedBooks = localStorage.getItem('biblio_books');
     const savedTheme = localStorage.getItem('biblio_theme');
     const savedColors = localStorage.getItem('biblio_colors');
     
     if (savedBooks) {
-      const parsed: any[] = JSON.parse(savedBooks);
-      const migrated = parsed.map(b => {
-        if (!b.sessions) {
-          return {
-            ...b,
-            sessions: b.dateStarted || b.dateFinished ? [{
-              id: Math.random().toString(36).substr(2, 9),
-              startDate: b.dateStarted || '',
-              endDate: b.dateFinished || '',
-              format: b.format || 'Physical Book'
-            }] : []
-          };
-        }
-        return b;
-      });
-      setBooks(migrated);
+      try {
+        setBooks(JSON.parse(savedBooks));
+      } catch (e) {
+        console.error("Failed to parse local books", e);
+      }
     }
     if (savedTheme) setActiveTheme(savedTheme as ThemePreset);
-    if (savedColors) setCustomColors(JSON.parse(savedColors));
+    if (savedColors) {
+      try {
+        setCustomColors(JSON.parse(savedColors));
+      } catch (e) {
+        console.error("Failed to parse custom colors", e);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -98,7 +91,9 @@ const App: React.FC = () => {
     const map: Record<TierId, Book[]> = {
       TBR: [], GOD: [], A: [], B: [], C: [], DNF: []
     };
-    books.forEach(b => map[b.tier].push(b));
+    books.forEach(b => {
+      if (map[b.tier]) map[b.tier].push(b);
+    });
     return map;
   }, [books]);
 
@@ -121,38 +116,27 @@ const App: React.FC = () => {
     });
   };
 
-  const handleDragStart = (id: string) => {
-    setDraggedBookId(id);
-  };
-
+  const handleDragStart = (id: string) => setDraggedBookId(id);
   const handleDragOverTier = (e: React.DragEvent, tierId: TierId) => {
     e.preventDefault();
     setDragOverTier(tierId);
   };
-
   const handleDragOverBook = (e: React.DragEvent, bookId: string) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverBookId(bookId);
   };
-
   const handleDropOnTier = (e: React.DragEvent, tierId: TierId) => {
     e.preventDefault();
-    if (draggedBookId) {
-      moveAndReorderBook(draggedBookId, tierId, null);
-    }
+    if (draggedBookId) moveAndReorderBook(draggedBookId, tierId, null);
     resetDragState();
   };
-
   const handleDropOnBook = (e: React.DragEvent, targetBookId: string, tierId: TierId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (draggedBookId && draggedBookId !== targetBookId) {
-      moveAndReorderBook(draggedBookId, tierId, targetBookId);
-    }
+    if (draggedBookId && draggedBookId !== targetBookId) moveAndReorderBook(draggedBookId, tierId, targetBookId);
     resetDragState();
   };
-
   const resetDragState = () => {
     setDraggedBookId(null);
     setDragOverTier(null);
@@ -164,17 +148,16 @@ const App: React.FC = () => {
       className="min-h-screen transition-colors duration-500 pb-20"
       style={{ backgroundColor: currentColors.background, color: currentColors.text }}
     >
-      {/* Header */}
       <header className="sticky top-0 z-30 shadow-md p-4 backdrop-blur-md flex items-center justify-between border-b" 
               style={{ backgroundColor: `${currentColors.background}CC`, borderColor: `${currentColors.accent}33` }}>
         <div className="flex items-center gap-3">
           <BookIcon className="w-8 h-8" style={{ color: currentColors.accent }} />
-          <h1 className="text-2xl font-bold tracking-tight">Shelfie</h1>
+          <h1 className="text-2xl font-black tracking-tight">Shelfie</h1>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="text-center">
-            <span className="block text-xs uppercase font-semibold opacity-70">Total Read</span>
+            <span className="block text-[10px] uppercase font-black opacity-70 tracking-widest">Total Read</span>
             <span className="text-2xl font-black" style={{ color: currentColors.accent }}>{totalBooksRead}</span>
           </div>
           
@@ -182,7 +165,7 @@ const App: React.FC = () => {
             <button 
               onClick={() => setIsVeoOpen(true)}
               className="p-2 rounded-full transition-transform hover:scale-110 active:scale-95 border"
-              style={{ borderColor: currentColors.accent, color: currentColors.accent }}
+              style={{ borderColor: `${currentColors.accent}66`, color: currentColors.accent }}
               title="Animate Cover (AI)"
             >
               <Video className="w-5 h-5" />
@@ -190,14 +173,14 @@ const App: React.FC = () => {
             <button 
               onClick={() => setIsThemeOpen(true)}
               className="p-2 rounded-full transition-transform hover:scale-110 active:scale-95 border"
-              style={{ borderColor: currentColors.accent, color: currentColors.accent }}
+              style={{ borderColor: `${currentColors.accent}66`, color: currentColors.accent }}
               title="Theme Settings"
             >
               <Settings className="w-5 h-5" />
             </button>
             <button 
               onClick={() => setIsSearchOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-black transition-transform hover:scale-105 active:scale-95 shadow-lg"
               style={{ backgroundColor: currentColors.accent }}
             >
               <Plus className="w-5 h-5" />
@@ -207,7 +190,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Board */}
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-4">
         {TIERS.map(tier => (
           <div 
@@ -215,26 +197,23 @@ const App: React.FC = () => {
             onDragOver={(e) => handleDragOverTier(e, tier.id)}
             onDragLeave={() => setDragOverTier(null)}
             onDrop={(e) => handleDropOnTier(e, tier.id)}
-            className={`flex flex-col sm:flex-row min-h-[160px] rounded-xl overflow-hidden shadow-sm border-2 transition-all ${dragOverTier === tier.id ? 'scale-[1.01] border-dashed ring-4 ring-offset-2' : 'border-transparent'}`}
-            // Fixed: Replaced 'ringColor' (invalid CSS) with CSS variable '--tw-ring-color' to work with Tailwind's ring utility
+            className={`flex flex-col sm:flex-row min-h-[160px] rounded-2xl overflow-hidden shadow-sm border-2 transition-all ${dragOverTier === tier.id ? 'scale-[1.01] border-dashed ring-4 ring-offset-2' : 'border-transparent'}`}
             style={{ 
               backgroundColor: `${currentColors[tier.id]}11`, 
               borderColor: dragOverTier === tier.id ? currentColors[tier.id] : `${currentColors[tier.id]}44`,
               ['--tw-ring-color' as any]: `${currentColors[tier.id]}33`
             }}
           >
-            {/* Tier Label - 100% Opaque and High Contrast */}
             <div 
               className="sm:w-36 flex flex-col items-center justify-center p-6 text-white font-black text-center shadow-lg z-10"
               style={{ backgroundColor: currentColors[tier.id], opacity: 1 }}
             >
-              <span className="text-xl leading-tight uppercase tracking-widest drop-shadow-md">{tier.label}</span>
-              <div className="mt-3 px-3 py-1 rounded-full bg-black/30 text-xs font-bold backdrop-blur-sm">
+              <span className="text-xl uppercase tracking-widest leading-tight">{tier.label}</span>
+              <div className="mt-3 px-3 py-1 rounded-full bg-black/30 text-[10px] font-bold">
                 {booksByTier[tier.id].length}
               </div>
             </div>
 
-            {/* Books Container */}
             <div className="flex-1 p-6 flex flex-wrap gap-6 items-start content-start min-h-[140px]">
               {booksByTier[tier.id].map(book => (
                 <div 
@@ -254,14 +233,13 @@ const App: React.FC = () => {
                     className="w-full h-36 sm:h-48 object-cover rounded shadow-lg border-2 border-transparent group-hover:border-white transition-all transform group-hover:scale-105"
                   />
                   <div className="mt-2 text-center">
-                    <p className="text-[10px] sm:text-xs font-bold truncate leading-none">{book.title}</p>
-                    <p className="text-[9px] sm:text-[10px] opacity-70 truncate mt-1">{book.author}</p>
+                    <p className="text-[10px] font-black truncate leading-none uppercase tracking-tighter">{book.title}</p>
                   </div>
                 </div>
               ))}
               {booksByTier[tier.id].length === 0 && (
-                <div className="w-full h-full flex items-center justify-center opacity-10 italic pointer-events-none text-xl font-bold">
-                  Drop Books Here
+                <div className="w-full h-full flex items-center justify-center opacity-10 italic pointer-events-none text-xl font-bold uppercase tracking-widest">
+                  Empty Tier
                 </div>
               )}
             </div>
@@ -269,40 +247,17 @@ const App: React.FC = () => {
         ))}
       </main>
 
-      {/* Modals */}
       {isSearchOpen && (
-        <SearchPanel 
-          onClose={() => setIsSearchOpen(false)} 
-          onAdd={addBook}
-          accentColor={currentColors.accent}
-        />
+        <SearchPanel onClose={() => setIsSearchOpen(false)} onAdd={addBook} accentColor={currentColors.accent} />
       )}
-
       {selectedBook && (
-        <BookModal 
-          book={selectedBook} 
-          onClose={() => setSelectedBook(null)} 
-          onSave={updateBook}
-          onDelete={deleteBook}
-          accentColor={currentColors.accent}
-        />
+        <BookModal book={selectedBook} onClose={() => setSelectedBook(null)} onSave={updateBook} onDelete={deleteBook} accentColor={currentColors.accent} />
       )}
-
       {isThemeOpen && (
-        <ThemeManager 
-          activeTheme={activeTheme}
-          setActiveTheme={setActiveTheme}
-          customColors={customColors}
-          setCustomColors={setCustomColors}
-          onClose={() => setIsThemeOpen(false)}
-        />
+        <ThemeManager activeTheme={activeTheme} setActiveTheme={setActiveTheme} customColors={customColors} setCustomColors={setCustomColors} onClose={() => setIsThemeOpen(false)} />
       )}
-
       {isVeoOpen && (
-        <VeoAnimator 
-          onClose={() => setIsVeoOpen(false)}
-          accentColor={currentColors.accent}
-        />
+        <VeoAnimator onClose={() => setIsVeoOpen(false)} accentColor={currentColors.accent} />
       )}
     </div>
   );

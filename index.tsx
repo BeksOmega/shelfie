@@ -1,27 +1,18 @@
-
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App';
 
-console.log('App Initialized');
+console.log('Shelfie Initializing...');
 
-const init = () => {
-  const rootElement = document.getElementById('root');
-  if (!rootElement) {
-    console.error("Could not find root element with id 'root'");
-    return;
-  }
+const container = document.getElementById('root');
 
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
-};
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+if (!container) {
+  throw new Error("Target container 'root' not found");
 }
+
+const root = createRoot(container);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
