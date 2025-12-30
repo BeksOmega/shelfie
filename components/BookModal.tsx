@@ -1,21 +1,19 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   Trash2, 
-  Calendar, 
   MessageSquare, 
   Percent, 
   Layout, 
   Plus, 
   History, 
-  Book as BookIcon, 
+  BookOpen, 
   Headphones, 
   Tablet,
   Check,
   Edit2
 } from 'lucide-react';
-import { Book, BookFormat, TierId, ReadingSession } from '../types';
+import { Book, BookFormat, ReadingSession } from '../types';
 import { TIERS } from '../constants';
 
 interface BookModalProps {
@@ -34,13 +32,8 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose, onSave, onDelete, 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const authorInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (editingTitle) titleInputRef.current?.focus();
-  }, [editingTitle]);
-
-  useEffect(() => {
-    if (editingAuthor) authorInputRef.current?.focus();
-  }, [editingAuthor]);
+  useEffect(() => { if (editingTitle) titleInputRef.current?.focus(); }, [editingTitle]);
+  useEffect(() => { if (editingAuthor) authorInputRef.current?.focus(); }, [editingAuthor]);
 
   const addSession = () => {
     const newSession: ReadingSession = {
@@ -49,17 +42,7 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose, onSave, onDelete, 
       endDate: '',
       format: 'Physical Book',
     };
-    setEditedBook(prev => ({
-      ...prev,
-      sessions: [...prev.sessions, newSession]
-    }));
-  };
-
-  const removeSession = (id: string) => {
-    setEditedBook(prev => ({
-      ...prev,
-      sessions: prev.sessions.filter(s => s.id !== id)
-    }));
+    setEditedBook(prev => ({ ...prev, sessions: [...prev.sessions, newSession] }));
   };
 
   const updateSession = (id: string, updates: Partial<ReadingSession>) => {
@@ -69,249 +52,132 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose, onSave, onDelete, 
     }));
   };
 
-  const formatOptions: { value: BookFormat; icon: any; label: string }[] = [
-    { value: 'Audiobook', icon: Headphones, label: 'Audiobook' },
-    { value: 'Physical Book', icon: BookIcon, label: 'Physical Book' },
-    { value: 'E-reader', icon: Tablet, label: 'E-reader' },
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm(`Permanently remove "${editedBook.title}" from your shelf?`)) {
+      onDelete(book.id);
+    }
+  };
+
+  const formatOptions: { value: BookFormat; icon: any }[] = [
+    { value: 'Audiobook', icon: Headphones },
+    { value: 'Physical Book', icon: BookOpen },
+    { value: 'E-reader', icon: Tablet },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="p-5 border-b flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <span className="px-4 py-1 rounded-full text-xs font-black uppercase text-white shadow-sm" style={{ backgroundColor: accentColor }}>
-              {editedBook.tier}
-            </span>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">Book Ledger</h2>
-          </div>
+      <div className="bg-white rounded-[40px] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div className="p-6 border-b flex items-center justify-between bg-gray-50/50">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Reading Archive Detail</span>
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => { if(window.confirm('Permanently remove this book from your collection?')) onDelete(book.id) }}
+              onClick={handleDelete}
               className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
               title="Delete Book"
             >
               <Trash2 className="w-5 h-5" />
             </button>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400">
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-all">
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col md:row gap-10">
-          <div className="flex flex-col md:flex-row gap-10">
-            {/* Left Column: Cover & Main Meta */}
-            <div className="w-full md:w-80 flex flex-col gap-6">
-              <div className="relative group">
-                <img 
-                  src={book.coverUrl || 'https://picsum.photos/320/480'} 
-                  alt={book.title} 
-                  className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl border-4 border-white"
-                />
-                <div className="absolute inset-0 rounded-2xl ring-1 ring-black/5 pointer-events-none"></div>
+        <div className="flex-1 overflow-y-auto p-10 flex flex-col md:flex-row gap-12">
+          <div className="w-full md:w-80 flex flex-col gap-6">
+            <div className="relative group">
+              <img src={book.coverUrl || 'https://picsum.photos/320/480'} className="w-full aspect-[2/3] object-cover rounded-3xl shadow-2xl ring-8 ring-gray-50 bg-gray-100" alt={book.title} />
+              <div className="absolute inset-0 rounded-3xl ring-1 ring-black/10 pointer-events-none"></div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="group bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                <label className="text-[9px] font-black uppercase text-gray-400">Title</label>
+                {editingTitle ? (
+                  <input ref={titleInputRef} className="w-full text-lg font-black bg-transparent outline-none border-b-2 border-indigo-200" value={editedBook.title} onChange={e => setEditedBook(p => ({ ...p, title: e.target.value }))} onBlur={() => setEditingTitle(false)} onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)} />
+                ) : (
+                  <div onClick={() => setEditingTitle(true)} className="flex items-center gap-2 cursor-pointer font-black text-lg group-hover:text-indigo-600 transition-colors">{editedBook.title} <Edit2 className="w-3 h-3 text-gray-300" /></div>
+                )}
               </div>
-              
-              <div className="space-y-4">
-                {/* Editable Title */}
-                <div className="group relative">
-                  {editingTitle ? (
-                    <input 
-                      ref={titleInputRef}
-                      className="w-full text-2xl font-black text-gray-900 leading-tight outline-none border-b-2 border-blue-500 bg-blue-50/50 p-1 rounded"
-                      value={editedBook.title}
-                      onChange={e => setEditedBook(prev => ({ ...prev, title: e.target.value }))}
-                      onBlur={() => setEditingTitle(false)}
-                      onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
-                    />
-                  ) : (
-                    <div 
-                      onClick={() => setEditingTitle(true)}
-                      className="cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors group"
-                    >
-                      <h1 className="text-2xl font-black text-gray-900 leading-tight flex items-center gap-2">
-                        {editedBook.title}
-                        <Edit2 className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </h1>
-                    </div>
-                  )}
-                </div>
-
-                {/* Editable Author */}
-                <div className="group relative">
-                  {editingAuthor ? (
-                    <input 
-                      ref={authorInputRef}
-                      className="w-full text-lg font-medium text-gray-600 outline-none border-b-2 border-blue-400 bg-blue-50/30 p-1 rounded"
-                      value={editedBook.author}
-                      onChange={e => setEditedBook(prev => ({ ...prev, author: e.target.value }))}
-                      onBlur={() => setEditingAuthor(false)}
-                      onKeyDown={e => e.key === 'Enter' && setEditingAuthor(false)}
-                    />
-                  ) : (
-                    <div 
-                      onClick={() => setEditingAuthor(true)}
-                      className="cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors group"
-                    >
-                      <p className="text-lg font-medium text-gray-600 flex items-center gap-2">
-                        {editedBook.author}
-                        <Edit2 className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="pt-6 border-t space-y-4">
-                <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  <Layout className="w-3 h-3" /> Assign Tier
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {TIERS.map(t => (
-                    <button
-                      key={t.id}
-                      onClick={() => setEditedBook(prev => ({ ...prev, tier: t.id }))}
-                      className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${editedBook.tier === t.id ? 'text-white border-transparent' : 'text-gray-400 border-gray-100 hover:border-gray-200'}`}
-                      style={{ backgroundColor: editedBook.tier === t.id ? accentColor : '' }}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="group bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                <label className="text-[9px] font-black uppercase text-gray-400">Author</label>
+                {editingAuthor ? (
+                  <input ref={authorInputRef} className="w-full text-sm font-bold bg-transparent outline-none border-b-2 border-indigo-200" value={editedBook.author} onChange={e => setEditedBook(p => ({ ...p, author: e.target.value }))} onBlur={() => setEditingAuthor(false)} onKeyDown={e => e.key === 'Enter' && setEditingAuthor(false)} />
+                ) : (
+                  <div onClick={() => setEditingAuthor(true)} className="flex items-center gap-2 cursor-pointer font-bold text-sm text-gray-500 group-hover:text-indigo-600 transition-colors">{editedBook.author} <Edit2 className="w-3 h-3 text-gray-300" /></div>
+                )}
               </div>
             </div>
 
-            {/* Right Column: History & Notes */}
-            <div className="flex-1 space-y-8">
-              {/* Reading History */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-500">
-                    <History className="w-4 h-4 text-blue-500" /> Reading History
-                  </label>
-                  <button 
-                    onClick={addSession}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-white text-[10px] font-black uppercase transition-transform hover:scale-105 active:scale-95 shadow-md"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    <Plus className="w-3 h-3" /> Add Session
-                  </button>
-                </div>
+            <div className="pt-6 border-t grid grid-cols-2 gap-2">
+              {TIERS.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setEditedBook(prev => ({ ...prev, tier: t.id }))}
+                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${editedBook.tier === t.id ? 'text-white border-transparent shadow-lg' : 'text-gray-400 border-gray-100 hover:border-gray-200'}`}
+                  style={{ backgroundColor: editedBook.tier === t.id ? accentColor : '' }}
+                >{t.label}</button>
+              ))}
+            </div>
+          </div>
 
-                <div className="space-y-3">
-                  {editedBook.sessions.length === 0 ? (
-                    <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic text-sm">
-                      No reading sessions logged yet.
+          <div className="flex-1 space-y-8">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><History className="w-4 h-4" /> Reading Sessions</h3>
+                <button onClick={addSession} className="px-4 py-2 rounded-full text-[10px] font-black uppercase text-white shadow-lg transition-transform hover:scale-105 active:scale-95" style={{ backgroundColor: accentColor }}>+ Session</button>
+              </div>
+
+              <div className="space-y-3">
+                {editedBook.sessions.map(session => (
+                  <div key={session.id} className="bg-gray-50/50 border-2 border-gray-100 rounded-2xl p-4 flex flex-wrap items-center gap-4 hover:border-indigo-100 transition-colors">
+                    <div className="flex gap-2 bg-white p-1 rounded-xl border border-gray-100">
+                      {formatOptions.map(opt => (
+                        <button key={opt.value} onClick={() => updateSession(session.id, { format: opt.value })} className={`p-2 rounded-lg transition-all ${session.format === opt.value ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-300 hover:text-gray-400'}`} style={{ backgroundColor: session.format === opt.value ? accentColor : '' }}><opt.icon className="w-4 h-4" /></button>
+                      ))}
                     </div>
-                  ) : (
-                    editedBook.sessions.map((session, idx) => (
-                      <div key={session.id} className="bg-white border-2 border-gray-100 rounded-2xl p-4 shadow-sm hover:border-gray-200 transition-all space-y-4">
-                        <div className="flex flex-wrap items-center gap-4">
-                          <div className="flex-1 min-w-[200px] grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase">Started</span>
-                              <input 
-                                type="date" 
-                                value={session.startDate}
-                                onChange={e => updateSession(session.id, { startDate: e.target.value })}
-                                className="w-full p-1.5 rounded-lg border border-gray-100 text-xs focus:ring-1 focus:ring-blue-200 outline-none"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase">Finished</span>
-                              <input 
-                                type="date" 
-                                value={session.endDate}
-                                onChange={e => updateSession(session.id, { endDate: e.target.value })}
-                                className="w-full p-1.5 rounded-lg border border-gray-100 text-xs focus:ring-1 focus:ring-blue-200 outline-none"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-100">
-                            {formatOptions.map(opt => (
-                              <button
-                                key={opt.value}
-                                onClick={() => updateSession(session.id, { format: opt.value })}
-                                title={`Switch to ${opt.label} format`}
-                                className={`p-2 rounded-lg transition-all ${session.format === opt.value ? 'bg-white shadow-sm' : 'text-gray-300 hover:text-gray-400'}`}
-                                style={{ color: session.format === opt.value ? accentColor : '' }}
-                              >
-                                <opt.icon className="w-4 h-4" />
-                              </button>
-                            ))}
-                          </div>
-
-                          <button 
-                            onClick={() => removeSession(session.id)}
-                            className="p-2 text-gray-300 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                    <div className="flex gap-2 flex-1 min-w-[150px]">
+                      <div className="flex-1">
+                        <span className="block text-[8px] font-black uppercase text-gray-300 mb-0.5">Start</span>
+                        <input type="date" value={session.startDate} onChange={e => updateSession(session.id, { startDate: e.target.value })} className="text-[10px] p-1.5 rounded-lg border w-full outline-none focus:ring-1 focus:ring-indigo-200" />
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {editedBook.tier === 'DNF' && (
-                <div className="space-y-4 bg-red-50 p-6 rounded-3xl border-2 border-red-100 shadow-sm">
-                  <label className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-red-400">
-                    <div className="flex items-center gap-2">
-                      <Percent className="w-4 h-4" /> Reading Progress
+                      <div className="flex-1">
+                        <span className="block text-[8px] font-black uppercase text-gray-300 mb-0.5">End</span>
+                        <input type="date" value={session.endDate} onChange={e => updateSession(session.id, { endDate: e.target.value })} className="text-[10px] p-1.5 rounded-lg border w-full outline-none focus:ring-1 focus:ring-indigo-200" />
+                      </div>
                     </div>
-                    <span className="text-lg">{editedBook.dnfProgress}%</span>
-                  </label>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    value={editedBook.dnfProgress}
-                    onChange={e => setEditedBook(prev => ({ ...prev, dnfProgress: parseInt(e.target.value) }))}
-                    className="w-full h-2 bg-red-200 rounded-full appearance-none cursor-pointer accent-red-500"
-                  />
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-red-400/80 italic">
-                    <Check className={`w-3 h-3 ${editedBook.dnfProgress > 80 ? 'opacity-100' : 'opacity-20'}`} />
-                    {editedBook.dnfProgress > 80 
-                      ? "Progress is over 80%. This DNF counts as a 'Read' book." 
-                      : "Progress must exceed 80% to count toward your total reads."}
+                    <button onClick={() => setEditedBook(p => ({ ...p, sessions: p.sessions.filter(s => s.id !== session.id) }))} className="text-gray-300 hover:text-red-400 transition-colors p-2"><X className="w-4 h-4" /></button>
                   </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-500">
-                  <MessageSquare className="w-4 h-4 text-purple-500" /> Notes & Critique
-                </label>
-                <textarea 
-                  value={editedBook.comments}
-                  onChange={e => setEditedBook(prev => ({ ...prev, comments: e.target.value }))}
-                  placeholder="What made this a God Tier read? Or why did you abandon it?"
-                  rows={6}
-                  className="w-full p-6 rounded-3xl border-2 border-gray-100 focus:border-blue-300 focus:ring-4 focus:ring-blue-50 outline-none resize-none transition-all shadow-inner text-gray-700 bg-gray-50/30"
-                />
+                ))}
               </div>
+            </div>
+
+            {editedBook.tier === 'DNF' && (
+              <div className="p-6 bg-red-50 rounded-3xl border-2 border-red-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-red-500">
+                  <div className="flex items-center gap-2"><Percent className="w-4 h-4" /> DNF Progress</div>
+                  <span className="text-lg">{editedBook.dnfProgress || 0}%</span>
+                </div>
+                <input type="range" min="0" max="100" value={editedBook.dnfProgress || 0} onChange={e => setEditedBook(p => ({ ...p, dnfProgress: parseInt(e.target.value) }))} className="w-full h-3 bg-red-200 rounded-full appearance-none accent-red-600 cursor-pointer" />
+                <div className="text-[10px] font-bold text-red-400 flex items-center gap-2">
+                  <Check className={`w-3 h-3 transition-opacity ${editedBook.dnfProgress > 80 ? 'opacity-100' : 'opacity-20'}`} />
+                  {editedBook.dnfProgress > 80 ? "Reached 80% - This book now counts towards your total read count!" : "Below 80% - Not counted in your yearly progress statistics."}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <label className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Personal Reflection</label>
+              <textarea value={editedBook.comments} onChange={e => setEditedBook(p => ({ ...p, comments: e.target.value }))} className="w-full p-6 rounded-[32px] border-2 border-gray-100 focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 outline-none h-40 resize-none bg-gray-50/50 transition-all text-gray-700" placeholder="Notes on writing, plot, or why it ended up in this tier..." />
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t bg-gray-50/80 flex justify-end gap-4">
-          <button 
-            onClick={onClose}
-            className="px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            Discard
-          </button>
-          <button 
-            onClick={() => onSave(editedBook)}
-            className="px-10 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-xl transition-transform hover:scale-105 active:scale-95"
-            style={{ backgroundColor: accentColor }}
-          >
-            Update Ledger
-          </button>
+        <div className="p-8 border-t bg-gray-50/80 flex justify-end gap-4">
+          <button onClick={onClose} className="px-8 py-3 rounded-2xl font-bold text-gray-400 uppercase text-[10px] tracking-widest hover:text-gray-600 transition-colors">Cancel</button>
+          <button onClick={() => onSave(editedBook)} className="px-10 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-xl hover:scale-105 active:scale-95 transition-all" style={{ backgroundColor: accentColor }}>Update Log</button>
         </div>
       </div>
     </div>

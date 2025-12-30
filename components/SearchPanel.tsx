@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Search, X, Loader2, Plus } from 'lucide-react';
+import { Search, X, Loader2, Plus, BookOpen } from 'lucide-react';
 
 interface SearchResult {
   id: string;
@@ -87,11 +86,17 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onClose, onAdd, accentColor }
               className="flex items-center gap-5 p-4 rounded-2xl border-2 border-transparent hover:border-gray-100 hover:bg-gray-50 group transition-all"
             >
               <div className="relative">
-                <img 
-                  src={book.coverUrl || 'https://picsum.photos/60/90'} 
-                  alt={book.title} 
-                  className="w-20 h-28 object-cover rounded-xl shadow-md border-2 border-white"
-                />
+                {book.coverUrl ? (
+                  <img 
+                    src={book.coverUrl} 
+                    alt={book.title} 
+                    className="w-20 h-28 object-cover rounded-xl shadow-md border-2 border-white"
+                  />
+                ) : (
+                  <div className="w-20 h-28 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-white">
+                    <BookOpen className="w-8 h-8 text-gray-300" />
+                  </div>
+                )}
                 <div className="absolute inset-0 rounded-xl ring-1 ring-black/5 pointer-events-none"></div>
               </div>
               <div className="flex-1">
@@ -117,7 +122,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onClose, onAdd, accentColor }
           )}
           {!query && (
             <div className="text-center py-16 opacity-30">
-              <Search className="w-16 h-16 mx-auto mb-4" />
+              <BookOpen className="w-16 h-16 mx-auto mb-4" />
               <p className="font-black text-xl uppercase tracking-tighter italic">Enter a keyword to begin</p>
             </div>
           )}
