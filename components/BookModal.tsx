@@ -55,8 +55,8 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose, onSave, onDelete, 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (window.confirm(`Permanently remove "${editedBook.title}" from your shelf?`)) {
-      onDelete(book.id);
+    if (window.confirm(`Permanently remove "${editedBook.title}" from your collection? This cannot be undone.`)) {
+      onDelete(editedBook.id);
     }
   };
 

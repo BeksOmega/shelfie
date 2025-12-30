@@ -69,8 +69,8 @@ const App: React.FC = () => {
   }, []);
 
   const deleteBook = useCallback((id: string) => {
-    setSelectedBook(null); // Close modal first
     setBooks(prev => prev.filter(b => b.id !== id));
+    setSelectedBook(null);
   }, []);
 
   const totalBooksRead = useMemo(() => {
@@ -87,7 +87,6 @@ const App: React.FC = () => {
     const map: Record<TierId, Book[]> = {
       TBR: [], GOD: [], A: [], B: [], C: [], DNF: []
     };
-    // Maintaining the order defined in the main books array
     books.forEach(b => map[b.tier].push(b));
     return map;
   }, [books]);
@@ -105,7 +104,6 @@ const App: React.FC = () => {
         const targetIndex = result.findIndex(b => b.id === targetBookId);
         result.splice(targetIndex, 0, draggedBook);
       } else {
-        // Appending to the end of that tier
         result.push(draggedBook);
       }
       return result;
